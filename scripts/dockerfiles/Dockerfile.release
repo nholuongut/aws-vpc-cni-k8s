@@ -1,0 +1,29 @@
+ARG golang_image
+ARG base_image
+
+FROM $golang_image as builder
+WORKDIR /go/src/github.com/nholuongut/amazon-vpc-cni-k8s
+ARG TARGETARCH
+# Configure build with Go modules
+ENV GO111MODULE=on
+ENV GOPROXY=direct
+
+COPY . ./
+RUN make build-nholuongut-vpc-cni && make build-linux
+
+# Build from EKS minimal base + iptables by default
+FROM $base_image
+
+WORKDIR /app
+
+COPY --from=builder /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/nholuongut-cni \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/misc/10-nholuongut.conflist \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/nholuongut-k8s-agent \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/grpc-health-probe \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/egress-cni \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/nholuongut-vpc-cni /app/
+
+# Set iptables mode automatically based on kubelet hint
+RUN ["update-alternatives", "--set", "iptables", "/usr/sbin/iptables-wrapper"]
+
+ENTRYPOINT ["/app/nholuongut-vpc-cni"]

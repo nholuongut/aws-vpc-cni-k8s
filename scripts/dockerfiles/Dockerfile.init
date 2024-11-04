@@ -1,0 +1,25 @@
+ARG golang_image
+ARG base_image
+
+FROM $golang_image as builder
+WORKDIR /go/src/github.com/nholuongut/amazon-vpc-cni-k8s
+ARG TARGETARCH
+# Configure build with Go modules
+ENV GO111MODULE=on
+ENV GOPROXY=direct
+
+COPY . ./
+RUN make plugins && make debug-script
+RUN make build-nholuongut-vpc-cni-init
+
+# Build from EKS minimal base + glibc by default
+FROM $base_image
+
+WORKDIR /init
+
+COPY --from=builder \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/core-plugins/* \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/nholuongut-cni-support.sh \
+    /go/src/github.com/nholuongut/amazon-vpc-cni-k8s/nholuongut-vpc-cni-init /init/
+
+CMD ["/init/nholuongut-vpc-cni-init"]

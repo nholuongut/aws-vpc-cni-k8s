@@ -1,0 +1,203 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: {{ include "nholuongut-vpc-cni.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "nholuongut-vpc-cni.labels" . | indent 4 }}
+spec:
+  updateStrategy:
+{{ toYaml .Values.updateStrategy | indent 4 }}
+  selector:
+    matchLabels:
+{{- if .Values.originalMatchLabels }}
+      k8s-app: nholuongut-node
+{{- else }}
+      app.kubernetes.io/name: {{ include "nholuongut-vpc-cni.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- if .Values.podLabels }}
+{{ toYaml .Values.podLabels | indent 6 }}
+      {{- end }}
+{{- end }}
+  template:
+    metadata:
+      {{- if .Values.podAnnotations }}
+      annotations:
+      {{- range $key, $value := .Values.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+      {{- end }}
+      labels:
+        app.kubernetes.io/name: {{ include "nholuongut-vpc-cni.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        k8s-app: nholuongut-node
+        {{- if .Values.podLabels }}
+{{ toYaml .Values.podLabels | indent 8 }}
+        {{- end }}
+    spec:
+      priorityClassName: "{{ .Values.priorityClassName }}"
+      serviceAccountName: {{ template "nholuongut-vpc-cni.serviceAccountName" . }}
+      hostNetwork: true
+      initContainers:
+      - name: nholuongut-vpc-cni-init
+        image: {{ include "nholuongut-vpc-cni.initImage" . }}
+        imagePullPolicy: {{ .Values.init.image.pullPolicy }}
+        env:
+{{- range $key, $value := .Values.init.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+{{- end }}
+        securityContext:
+          {{- toYaml .Values.init.securityContext | nindent 12 }}
+        {{- with default .Values.resources .Values.init.resources }}
+        resources:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+        volumeMounts:
+          - mountPath: /host/opt/cni/bin
+            name: cni-bin-dir
+      terminationGracePeriodSeconds: 10
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: nholuongut-node
+          image: {{ include "nholuongut-vpc-cni.image" . }}
+          ports:
+            - containerPort: 61678
+              name: metrics
+          livenessProbe:
+{{ toYaml .Values.livenessProbe | indent 12 }}
+            timeoutSeconds: {{ .Values.livenessProbeTimeoutSeconds }}
+          readinessProbe:
+{{ toYaml .Values.readinessProbe | indent 12 }}
+            timeoutSeconds: {{ .Values.readinessProbeTimeoutSeconds }}
+          env:
+{{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+{{- end }}
+{{- with .Values.extraEnv }}
+      {{- toYaml .| nindent 12 }}
+{{- end }}
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+          - mountPath: /host/opt/cni/bin
+            name: cni-bin-dir
+          - mountPath: /host/etc/cni/net.d
+            name: cni-net-dir
+          {{- if .Values.cniConfig.enabled }}
+            # The dockerfile copies the baked in config to this location, so overwrite it with ours.
+            # The entrypoint process will then copy our config to /host/etc/cni/net.d on boot.
+          - name: cni-config
+            mountPath: /app/10-nholuongut.conflist
+            subPath: 10-nholuongut.conflist
+          {{- end }}
+          - mountPath: /host/var/log/nholuongut-routed-eni
+            name: log-dir
+          - mountPath: /var/run/nholuongut-node
+            name: run-dir
+          - mountPath: /run/xtables.lock
+            name: xtables-lock
+          {{- with .Values.extraVolumeMounts  }}
+          {{- toYaml .| nindent 10 }}
+          {{- end }}
+        {{- if .Values.nodeAgent.enabled }}
+        - name: nholuongut-eks-nodeagent
+          image: {{ include "nholuongut-vpc-cni.nodeAgentImage" . }}
+          imagePullPolicy: {{ .Values.nodeAgent.image.pullPolicy }}
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          args:
+            - --enable-ipv6={{ .Values.nodeAgent.enableIpv6 }}
+            - --enable-network-policy={{ .Values.enableNetworkPolicy }}
+            - --enable-cloudwatch-logs={{ .Values.nodeAgent.enableCloudWatchLogs }}
+            - --enable-policy-event-logs={{ .Values.nodeAgent.enablePolicyEventLogs }}
+            - --log-file={{ .Values.nodeAgent.networkPolicyAgentLogFileLocation }}
+            - --metrics-bind-addr={{ include "nholuongut-vpc-cni.nodeAgentMetricsBindAddr" . }}
+            - --health-probe-bind-addr={{ include "nholuongut-vpc-cni.nodeAgentHealthProbeBindAddr" . }}
+            - --conntrack-cache-cleanup-period={{ .Values.nodeAgent.conntrackCacheCleanupPeriod }}
+          {{- with default .Values.resources .Values.nodeAgent.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.nodeAgent.securityContext | nindent 12 }}
+          volumeMounts:
+          - mountPath: /host/opt/cni/bin
+            name: cni-bin-dir
+          {{- if .Values.nodeAgent.enabled }}
+          - mountPath: /sys/fs/bpf
+            name: bpf-pin-path
+          {{- end }}
+          - mountPath: /var/log/nholuongut-routed-eni
+            name: log-dir
+          - mountPath: /var/run/nholuongut-node
+            name: run-dir
+      {{- end }}
+      volumes:
+      {{- if .Values.nodeAgent.enabled }}
+      - name: bpf-pin-path
+        hostPath:
+          path: /sys/fs/bpf
+      {{- end }}
+      - name: cni-bin-dir
+        hostPath:
+          path: /opt/cni/bin
+      - name: cni-net-dir
+        hostPath:
+          path: /etc/cni/net.d
+      {{- if .Values.cniConfig.enabled }}
+      - name: cni-config
+        configMap:
+          name: {{ include "nholuongut-vpc-cni.fullname" . }}
+      {{- end }}
+      - name: log-dir
+        hostPath:
+          path: /var/log/nholuongut-routed-eni
+          type: DirectoryOrCreate
+      - name: run-dir
+        hostPath:
+          path: /var/run/nholuongut-node
+          type: DirectoryOrCreate
+      - name: xtables-lock
+        hostPath:
+          path: /run/xtables.lock
+          type: FileOrCreate
+      {{- with .Values.extraVolumes  }}
+      {{- toYaml .| nindent 6 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

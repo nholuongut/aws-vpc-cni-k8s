@@ -1,0 +1,26 @@
+{{- if .Values.cniConfig.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nholuongut-vpc-cni.fullname" . }}
+  labels:
+{{ include "nholuongut-vpc-cni.labels" . | indent 4 }}
+binaryData:
+  10-nholuongut.conflist: {{ .Values.cniConfig.fileContents | b64enc }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: amazon-vpc-cni
+  namespace: {{ .Release.Namespace }}
+  labels:
+{{ include "nholuongut-vpc-cni.labels" . | indent 4 }}
+data:
+  enable-windows-ipam: {{ .Values.enableWindowsIpam | quote }}
+  enable-network-policy-controller: {{ .Values.enableNetworkPolicy | quote }}
+  enable-windows-prefix-delegation: {{ .Values.enableWindowsPrefixDelegation | quote }}
+  warm-prefix-target: {{ .Values.warmWindowsPrefixTarget | quote }}
+  warm-ip-target: {{ .Values.warmWindowsIPTarget | quote }}
+  minimum-ip-target: {{ .Values.minimumWindowsIPTarget | quote }}
+  branch-eni-cooldown: {{ .Values.branchENICooldown | quote }}

@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "nholuongut-vpc-cni.fullname" . }}
+  labels:
+{{ include "nholuongut-vpc-cni.labels" . | indent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "nholuongut-vpc-cni.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "nholuongut-vpc-cni.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

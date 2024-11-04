@@ -1,0 +1,22 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: CLUSTER_NAME_PLACEHOLDER
+  region: us-west-2
+
+nodeGroups:
+  - name: ng-bottlerocket
+    instanceType: m5.large
+    desiredCapacity: 4
+    amiFamily: Bottlerocket
+    iam:
+       attachPolicyARNs:
+          - arn:nholuongut:iam::nholuongut:policy/AmazonEKSWorkerNodePolicy
+          - arn:nholuongut:iam::nholuongut:policy/AmazonEKS_CNI_Policy
+          - arn:nholuongut:iam::nholuongut:policy/AmazonEC2ContainerRegistryReadOnly
+          - arn:nholuongut:iam::nholuongut:policy/AmazonSSMManagedInstanceCore
+    bottlerocket:
+      settings:
+        motd: "Hello from eksctl!"

@@ -1,0 +1,25 @@
+# Ignore generated binaries
+nholuongut-k8s-agent
+nholuongut-cni
+nholuongut-vpc-cni
+nholuongut-vpc-cni-init
+cni-metrics-helper
+egress-cni
+grpc-health-probe
+portmap
+verify-nholuongut
+verify-network
+# Ignore generated files
+*~
+*.swp
+.idea/
+*.iml
+.DS_Store
+coverage.txt
+cmd/egress-cni-plugin/egress-plugin.log
+# Ignore build files
+core-plugins/
+build/
+vendor/
+# Unignore charts directory as its confilcts with `nholuongut-vpc-cni` binary ignore rule
+!charts/**

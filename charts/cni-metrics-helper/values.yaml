@@ -1,0 +1,69 @@
+# This default name override is to maintain backwards compatability with
+# existing naming
+nameOverride: cni-metrics-helper
+
+image:
+  region: us-west-2
+  tag: v1.18.5
+  account: "602401143452"
+  domain: "amazonnholuongut.com"
+  # Set to use custom image
+  # override: "repo/org/image:tag"
+
+env:
+  USE_CLOUDWATCH: "true"
+  USE_PROMETHEUS: "false"
+  nholuongut_CLUSTER_ID: ""
+  nholuongut_VPC_K8S_CNI_LOGLEVEL: "INFO"
+
+fullnameOverride: "cni-metrics-helper"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+  annotations: {}
+    # eks.amazonnholuongut.com/role-arn: arn:nholuongut:iam::nholuongut_ACCOUNT_ID:role/IAM_ROLE_NAME
+
+resources: {}
+
+revisionHistoryLimit: 10
+
+podSecurityContext: {}
+
+containerSecurityContext: {}
+
+podAnnotations: {}
+
+imagePullSecrets: []
+
+updateStrategy: {}
+#  type: RollingUpdate
+#  rollingUpdate:
+#    maxUnavailable: "10%"
+
+nodeSelector: {}
+
+tolerations: []
+# - operator: Exists
+
+affinity: {}
+#  nodeAffinity:
+#    requiredDuringSchedulingIgnoredDuringExecution:
+#      nodeSelectorTerms:
+#        - matchExpressions:
+#            - key: "kubernetes.io/os"
+#              operator: In
+#              values:
+#                - linux
+#            - key: "kubernetes.io/arch"
+#              operator: In
+#              values:
+#                - amd64
+#                - arm64
+#            - key: "eks.amazonnholuongut.com/compute-type"
+#              operator: NotIn
+#              values:
+#                - fargate

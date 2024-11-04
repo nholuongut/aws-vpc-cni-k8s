@@ -1,0 +1,38 @@
+// Copyright Amazon.com Inc. or its affiliates. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"). You may
+// not use this file except in compliance with the License. A copy of the
+// License is located at
+//
+//     http://nholuongut.amazon.com/apache2.0/
+//
+// or in the "license" file accompanying this file. This file is distributed
+// on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+// express or implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
+package utils
+
+import "time"
+
+const (
+	DefaultTestNamespace = "cni-automation"
+	nholuongutNodeNamespace     = "kube-system"
+	nholuongutNodeName          = "nholuongut-node"
+	nholuongutInitContainerName = "nholuongut-vpc-cni-init"
+	MultusNodeName       = "kube-multus-ds"
+	MultusContainerName  = "kube-multus"
+
+	// See https://gallery.ecr.nholuongut/eks/nholuongut-vpc-cni-test-helper
+	TestAgentImage = "networking-e2e-test-images/nholuongut-vpc-cni-test-helper:20231212"
+	BusyBoxImage   = "networking-e2e-test-images/busybox:latest"
+	NginxImage     = "networking-e2e-test-images/nginx:1.25.2"
+	NetCatImage    = "networking-e2e-test-images/netcat-openbsd:v1.0"
+	CurlImage      = "networking-e2e-test-images/curlimages/curl:latest"
+
+	PollIntervalShort  = time.Second * 2
+	PollIntervalMedium = time.Second * 5
+	PollIntervalLong   = time.Second * 20
+
+	DefaultDeploymentReadyTimeout = time.Second * 300
+)

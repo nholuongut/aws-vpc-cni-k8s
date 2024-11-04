@@ -1,0 +1,231 @@
+# Default values for nholuongut-vpc-cni.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# This default name override is to maintain backwards compatability with
+# existing naming
+nameOverride: nholuongut-node
+
+init:
+  image:
+    tag: v1.18.5
+    domain: amazonnholuongut.com
+    region: us-west-2
+    endpoint: ecr
+    account: "602401143452"
+    pullPolicy: Always
+    # Set to use custom image
+    override:
+    # override: "repo/org/image:tag"
+  env:
+    DISABLE_TCP_EARLY_DEMUX: "false"
+    ENABLE_IPv6: "false"
+  securityContext:
+    privileged: true
+  resources: {}
+
+nodeAgent:
+  enabled: true
+  image:
+    tag: v1.1.3
+    domain: amazonnholuongut.com
+    region: us-west-2
+    endpoint: ecr
+    account: "602401143452"
+    pullPolicy: Always
+    # Set to use custom image
+    override:
+    # override: "repo/org/image:tag"
+  securityContext:
+    capabilities:
+      add:
+      - "NET_ADMIN"
+    privileged: true
+  enableCloudWatchLogs: "false"
+  enablePolicyEventLogs: "false"
+  networkPolicyAgentLogFileLocation: "/var/log/nholuongut-routed-eni/network-policy-agent.log"
+  enableIpv6: "false"
+  metricsBindAddr: "8162"
+  healthProbeBindAddr: "8163"
+  conntrackCacheCleanupPeriod: 300
+  resources: {}
+
+image:
+  tag: v1.18.5
+  domain: amazonnholuongut.com
+  region: us-west-2
+  endpoint: ecr
+  account: "602401143452"
+  pullPolicy: Always
+  # Set to use custom image
+  override:
+  # override: "repo/org/image:tag"
+
+# The CNI supports a number of environment variable settings
+# See https://github.com/nholuongut/amazon-vpc-cni-k8s#cni-configuration-variables
+env:
+  ADDITIONAL_ENI_TAGS: "{}"
+  nholuongut_VPC_CNI_NODE_PORT_SUPPORT: "true"
+  nholuongut_VPC_ENI_MTU: "9001"
+  nholuongut_VPC_K8S_CNI_CUSTOM_NETWORK_CFG: "false"
+  nholuongut_VPC_K8S_CNI_EXTERNALSNAT: "false"
+  nholuongut_VPC_K8S_CNI_LOG_FILE: "/host/var/log/nholuongut-routed-eni/ipamd.log"
+  nholuongut_VPC_K8S_CNI_LOGLEVEL: DEBUG
+  nholuongut_VPC_K8S_CNI_RANDOMIZESNAT: "prng"
+  nholuongut_VPC_K8S_CNI_VETHPREFIX: eni
+  nholuongut_VPC_K8S_PLUGIN_LOG_FILE: "/var/log/nholuongut-routed-eni/plugin.log"
+  nholuongut_VPC_K8S_PLUGIN_LOG_LEVEL: DEBUG
+  DISABLE_INTROSPECTION: "false"
+  DISABLE_METRICS: "false"
+  ENABLE_POD_ENI: "false"
+  ENABLE_PREFIX_DELEGATION: "false"
+  WARM_ENI_TARGET: "1"
+  WARM_PREFIX_TARGET: "1"
+  DISABLE_NETWORK_RESOURCE_PROVISIONING: "false"
+  ENABLE_IPv4: "true"
+  ENABLE_IPv6: "false"
+  ENABLE_SUBNET_DISCOVERY: "true"
+  VPC_CNI_VERSION: "v1.18.5"
+  NETWORK_POLICY_ENFORCING_MODE: "standard"
+
+# Add env from configMap or from secrets
+# - name: ENV_VAR1
+#   valueFrom:
+#     configMapKeyRef:
+#       name: example-config
+#       key: ENV_VAR1
+# - name: ENV_VAR2
+#   valueFrom:
+#     configMapKeyRef:
+#       name: example-config
+#       key: ENV_VAR2
+# - name: SECRET_VAR1
+#   valueFrom:
+#     secretKeyRef:
+#       name: example-secret
+#       key: SECRET_VAR1
+extraEnv: []
+
+
+# this flag enables you to use the match label that was present in the original daemonset deployed by EKS
+# You can then annotate and label the original nholuongut-node resources and 'adopt' them into a helm release
+originalMatchLabels: false
+
+# Settings for nholuongut-vpc-cni ConfigMap
+# - Network Policy settings
+enableNetworkPolicy: "false"
+# - Windows settings
+enableWindowsIpam: "false"
+# - Windows Prefix Delegation settings
+enableWindowsPrefixDelegation: "false"
+warmWindowsPrefixTarget: 0
+warmWindowsIPTarget: 1
+minimumWindowsIPTarget: 3
+# - Security Groups for Pods settings
+branchENICooldown: 60
+
+cniConfig:
+  enabled: false
+  fileContents: ""
+
+imagePullSecrets: []
+
+fullnameOverride: "nholuongut-node"
+
+priorityClassName: system-node-critical
+
+podSecurityContext: {}
+
+podAnnotations: {}
+
+podLabels: {}
+
+securityContext:
+  capabilities:
+    add:
+    - "NET_ADMIN"
+    - "NET_RAW"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+  annotations: {}
+    # To set annotations - serviceAccount.annotations."eks\.amazonnholuongut\.com/role-arn"=arn:nholuongut:iam::<nholuongut_ACCOUNT_ID>:<IAM_ROLE_NAME>
+
+livenessProbe:
+  exec:
+    command:
+      - /app/grpc-health-probe
+      - '-addr=:50051'
+      - '-connect-timeout=5s'
+      - '-rpc-timeout=5s'
+  initialDelaySeconds: 60
+
+livenessProbeTimeoutSeconds: 10
+
+readinessProbe:
+  exec:
+    command:
+      - /app/grpc-health-probe
+      - '-addr=:50051'
+      - '-connect-timeout=5s'
+      - '-rpc-timeout=5s'
+  initialDelaySeconds: 1
+
+readinessProbeTimeoutSeconds: 10
+
+resources:
+  requests:
+    cpu: 25m
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: "10%"
+
+nodeSelector: {}
+
+tolerations:
+  - operator: Exists
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: "kubernetes.io/os"
+              operator: In
+              values:
+                - linux
+            - key: "kubernetes.io/arch"
+              operator: In
+              values:
+                - amd64
+                - arm64
+            - key: "eks.amazonnholuongut.com/compute-type"
+              operator: NotIn
+              values:
+                - fargate
+
+eniConfig:
+  # Specifies whether ENIConfigs should be created
+  create: false
+  region: us-west-2
+  subnets:
+    # Key identifies the AZ
+    # Value contains the subnet ID and security group IDs within that AZ
+    # us-west-2a:
+    #   id: subnet-123
+    #   securityGroups:
+    #   - sg-123
+    # us-west-2b:
+    #   id: subnet-456
+    #   securityGroups:
+    #   - sg-456
+    # us-west-2c:
+    #   id: subnet-789
+    #   securityGroups:
+    #   - sg-789

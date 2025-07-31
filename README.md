@@ -846,7 +846,7 @@ instructions [here](https://nholuongut.amazon.com/security/vulnerability-reporti
 * [PayPal.me](https://www.paypal.com/paypalme/nholuongut)
 
 ![](https://i.imgur.com/waxVImv.png)
-![](Donate.png)
+![](Donate.jpg)
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nholuong)
 
 # License
